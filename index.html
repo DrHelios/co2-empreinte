@@ -25,7 +25,9 @@
     padding:6px 12px;border-radius:8px;font-size:13px;font-weight:550}
   .loader .file-btn:hover{border-color:var(--accent)}
   .loader .status{font-size:12.5px;color:var(--faint);margin-left:auto}
-  input[type=file]{display:none}
+  .exp-select{background:var(--panel2);border:1px solid var(--line);color:var(--txt);font-family:inherit;
+    font-size:13px;font-weight:550;padding:6px 10px;border-radius:8px;cursor:pointer}
+  .exp-select:hover{border-color:var(--accent)}
 
   nav.tabs{display:flex;gap:6px;flex-wrap:wrap;margin:22px 0 18px;border-bottom:1px solid var(--line)}
   nav.tabs button{background:none;border:none;color:var(--muted);font-family:inherit;font-size:14px;
@@ -133,9 +135,9 @@
   </header>
 
   <div class="loader">
-    <label>Données chargées depuis <code>data.js</code>.</label>
-    <span class="file-btn" id="pickBtn">Charger mes CSV…</span>
-    <input type="file" id="fileInput" accept=".csv" multiple>
+    <label>Exporter les données (format éditable, sert aussi de modèle) :</label>
+    <span class="file-btn" id="expData">⬇ data.js</span>
+    <select id="expCsv" class="exp-select" aria-label="Télécharger un CSV"></select>
     <span class="status" id="status">prêt</span>
   </div>
 
@@ -204,6 +206,9 @@
         </div>
       </div>
       <div id="divChart"></div>
+      <div class="warn" style="margin-top:16px">
+        <strong>Pourquoi la Belgique est si extrême (+133%).</strong> Sa consommation de CO2 (~207 Mt) vaut ~2,3× sa production territoriale (~89 Mt) — de loin le plus gros écart. C'est typique d'une <strong>petite économie très ouverte</strong> : population réduite (~11,7 M), gros pôles portuaires et de transit (Anvers, 2ᵉ port d'Europe), industrie chimique/raffinage qui <strong>importe énormément de biens intermédiaires à forte intensité carbone</strong>, et une production électrique relativement décarbonée (nucléaire) qui tire ses émissions territoriales vers le bas. Résultat : peu d'émissions « chez elle », mais une empreinte de consommation parmi les plus élevées (~17,8 t/hab). <em>À nuancer</em> : les modèles MRIO amplifient ce ratio pour les petits pays, et une partie du carbone importé transite par la Belgique vers des biens consommés ailleurs.
+      </div>
     </div>
     <div class="panel">
       <h2>Empreinte de consommation par habitant <span class="unit-pill">2022 · tCO2/hab</span></h2>
@@ -241,7 +246,7 @@
         <span><i class="seg-import" style="border:1px solid var(--line)"></i> CO2 net importé (au-delà du territorial)</span>
         <span id="keyPad" style="display:none"><i class="seg-pad"></i> écart au plus gros émetteur (Chine)</span>
       </div>
-      <p class="note" style="margin-top:16px"><strong>Lecture.</strong> La <strong>France est atypique</strong> : l'électricité ne pèse que ~11% (nucléaire + hydraulique), le <span style="color:var(--warm)">transport est le 1er poste (~31%)</span>, suivi de l'agriculture (~17%). À l'inverse, <strong>Chine</strong> (~49%) et <strong>Inde</strong> (~38%) sont dominées par l'électricité au charbon + l'industrie ; les <strong>États-Unis</strong> sont à l'équilibre électricité/transport (~30% chacun). Le CO2 importé ajoute ~48% à la France, ~30% à l'Allemagne/UE/UK ; Chine et Inde sont au contraire <em>exportatrices</em> nettes (−11% et −17%).</p>
+      <p class="note" style="margin-top:16px"><strong>Lecture.</strong> La <strong>France est atypique</strong> : l'électricité ne pèse que ~11% (nucléaire + hydraulique), le <span style="color:var(--warm)">transport est le 1er poste (~31%)</span>, suivi de l'agriculture (~17%). À l'inverse, <strong>Chine</strong> (~49%) et <strong>Inde</strong> (~38%) sont dominées par l'électricité au charbon + l'industrie ; les <strong>États-Unis</strong> sont à l'équilibre électricité/transport (~30% chacun). Le CO2 importé ajoute ~48% à la France, ~30% à l'Allemagne/UE/UK ; Chine et Inde sont au contraire <em>exportatrices</em> nettes (−11% et −17%). La <strong>Belgique</strong> est un cas à part (+133%, barre tronquée ici) — voir l'explication dans l'onglet « Imports nets ».</p>
       <p class="note" style="margin-top:8px"><strong>Par habitant</strong>, le classement s'inverse : États-Unis ~17,6 t/hab loin devant, Chine ~10, Allemagne ~8, France ~5,8 (basse grâce au nucléaire), Inde ~2,9. En absolu l'Inde et la Chine dominent ; rapporté à la population, ce sont les pays riches qui émettent le plus.</p>
       <p class="note" style="margin-top:8px">⚠︎ Périmètres : les secteurs sont en CO2eq territorial (Climate Watch/OWID 2023) ; le CO2 importé est un <em>ordre de grandeur</em> appliqué d'après les échanges nets en CO2 fossile (OWID/GCP 2022) — à lire comme une indication, pas une addition stricte.</p>
     </div>
@@ -296,7 +301,7 @@
 
   <footer>
     Données : Global Carbon Project / Our World in Data (CO2 fossile, comparaison pays) · SDES / INSEE (CO2eq tous gaz, France) · OCDE TECO2 · Eurostat FIGARO.
-    CSV éditables dans <code>/data</code> — modifie-les puis « Charger mes CSV… », ou relance <code>node build.js</code>.
+    CSV téléchargeables ci-dessus (et dans <code>/data</code>) — édite puis relance <code>node build.js</code>, ou <code>git push</code> pour redéployer.
     Construit pour comparaison neutre ; les empreintes consommation sont des estimations modélisées (MRIO).
   </footer>
 </div>
@@ -689,38 +694,43 @@
     buildTrCards();buildTrModes();buildTrUsage();buildTrLD();buildAviation();
   }
 
-  /* ---------- file loader ---------- */
-  function wireLoader(){
-    var input=document.getElementById('fileInput');
-    document.getElementById('pickBtn').onclick=function(){input.click();};
-    input.onchange=function(){
-      var files=Array.prototype.slice.call(input.files),pending=files.length,patch={};
-      if(!pending)return;
-      var base={};for(var bk in window.CO2_CSV)base[bk]=window.CO2_CSV[bk];
-      files.forEach(function(file){
-        var rd=new FileReader();
-        rd.onload=function(){
-          var n=file.name.toLowerCase();
-          if(n.indexOf('pays')>=0)patch.pays=rd.result;
-          else if(n.indexOf('overview')>=0||(n.indexOf('france')>=0&&n.indexOf('secteur')<0))patch.france=rd.result;
-          else if(n.indexOf('secteur')>=0)patch.secteurs=rd.result;
-          else if(n.indexOf('commerce')>=0)patch.commerce=rd.result;
-          else if(n.indexOf('source')>=0)patch.sources=rd.result;
-          if(--pending===0){
-            DATA.countries&&DATA.countries.forEach(function(c){delete c._vis;});
-            ingest(Object.assign(base,patch));renderAll();
-            document.getElementById('status').textContent=files.length+' fichier(s) chargé(s) ✓';
-          }
-        };
-        rd.readAsText(file);
-      });
+  /* ---------- export ---------- */
+  // clé window.CO2_CSV -> nom de fichier (identique au dossier /data)
+  var CSV_FILES=[
+    ['pays','co2_pays_series.csv'],['france','co2_france_overview.csv'],
+    ['secteurs','co2_france_secteurs.csv'],['commerce','co2_commerce_net.csv'],
+    ['elec','co2_elec_intensite.csv'],['sectPays','co2_secteurs_pays.csv'],
+    ['trModes','co2_transport_modes.csv'],['trUsage','co2_transport_usage.csv'],
+    ['trLD','co2_transport_longue_distance.csv'],['aviationMotifs','co2_aviation_motifs.csv'],
+    ['sources','co2_sources.csv']
+  ];
+  function download(name,text,mime){
+    var blob=new Blob([text],{type:(mime||'text/plain')+';charset=utf-8'});
+    var url=URL.createObjectURL(blob),a=document.createElement('a');
+    a.href=url;a.download=name;document.body.appendChild(a);a.click();
+    document.body.removeChild(a);setTimeout(function(){URL.revokeObjectURL(url);},1500);
+  }
+  function wireExport(){
+    document.getElementById('expData').onclick=function(){
+      download('data.js','window.CO2_CSV = '+JSON.stringify(window.CO2_CSV)+';\n','text/javascript');
+      document.getElementById('status').textContent='data.js exporté ✓';
+    };
+    var sel=document.getElementById('expCsv');
+    sel.innerHTML='<option value="">⬇ Télécharger un CSV…</option>'+
+      CSV_FILES.map(function(f){return '<option value="'+f[0]+'">'+f[1]+'</option>';}).join('');
+    sel.onchange=function(){
+      var k=sel.value;if(!k)return;
+      var file=CSV_FILES.filter(function(f){return f[0]===k;})[0][1];
+      download(file,window.CO2_CSV[k],'text/csv');
+      document.getElementById('status').textContent=file+' exporté ✓';
+      sel.value='';
     };
   }
 
   /* ---------- boot ---------- */
   if(!window.CO2_CSV){document.getElementById('status').textContent='⚠ data.js introuvable';return;}
   ingest(window.CO2_CSV);
-  wireTabs();wirePays();wireCommerce();wireSectMode();wireLoader();
+  wireTabs();wirePays();wireCommerce();wireSectMode();wireExport();
   renderAll();
 })();
 </script>
