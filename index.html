@@ -149,6 +149,7 @@
     <button data-tab="secteurs">Détail sectoriel (France)</button>
     <button data-tab="secteurspays">Par secteur & électricité</button>
     <button data-tab="transport">Transport (France)</button>
+    <button data-tab="empreinte">Importé vs national (/hab)</button>
     <button data-tab="sources">Sources & méthode</button>
   </nav>
 
@@ -286,6 +287,25 @@
     </div>
   </section>
 
+  <!-- ===== EMPREINTE /HAB : IMPORTÉ vs NATIONAL ===== -->
+  <section class="tab" id="empreinte">
+    <div class="panel">
+      <h2>Empreinte de consommation par habitant : national vs importé <span class="unit-pill">CO2 fossile</span></h2>
+      <p class="note">Pour chaque pays, l'empreinte de consommation par habitant, scindée entre la part <span style="color:var(--cool)">produite sur le territoire</span> et la part <span style="color:var(--orange)">importée</span> (carbone incorporé aux biens/services importés). Survole une barre pour le détail. Clique la légende pour isoler une part.</p>
+      <div class="legend" id="legHab"></div>
+      <div id="habPaysChart"></div>
+      <div class="tooltip" id="ttHab" style="position:fixed"></div>
+      <p class="note" style="margin-top:14px"><strong>Lecture.</strong> Les <strong>États-Unis</strong> (~15,5 t/hab) émettent surtout chez eux (~21% importé) ; à l'inverse la <strong>France</strong> (~6,1 t) importe ~47% de son empreinte, et la <strong>Belgique</strong> ~54%. Chine, Inde, Russie ont une part importée faible (9–14%) : elles produisent plus qu'elles n'importent.</p>
+      <p class="note" style="margin-top:8px">⚠︎ Conso/hab : OWID/Global Carbon Project 2023 (CO2 fossile). Part importée : OCDE TECO2 2018 (part <em>brute</em> de l'empreinte d'origine étrangère). Millésimes différents → ordre de grandeur. Belgique gonflée par les réexports portuaires (Anvers). L'agrégat UE neutralise en partie le commerce intra-UE (part plus basse que ses membres).</p>
+    </div>
+    <div class="panel">
+      <h2>France : empreinte/hab par poste, national vs importé <span class="unit-pill">CO2eq · SDES 2023</span></h2>
+      <p class="note">Le détail demandé : pour chaque poste de consommation, ce qui est produit en France vs importé, par habitant (~9,4 tCO2eq/hab au total). Survole pour les valeurs exactes.</p>
+      <div id="habFrChart"></div>
+      <p class="note" style="margin-top:14px"><strong>Lecture.</strong> Les <strong>biens d'équipement</strong> (textile, électronique, électroménager) sont importés à <strong>~70%</strong> — c'est le poste le plus délocalisé. Le <strong>transport</strong> est à ~50% importé (carburants, véhicules), tandis que le <strong>logement</strong> (~25%) et les <strong>services</strong> (~20%) restent largement nationaux.</p>
+    </div>
+  </section>
+
   <!-- ===== SOURCES ===== -->
   <section class="tab" id="sources">
     <div class="panel">
@@ -367,6 +387,8 @@
     DATA.trUsage=parseCSV(csv.trUsage).map(function(r){return {usage:r.usage,share:num(r.part_pct_transport),note:r.detail};});
     DATA.trLD=parseCSV(csv.trLD).map(function(r){return {ind:r.indicateur,share:num(r.part_pct)};});
     DATA.aviation=parseCSV(csv.aviationMotifs).map(function(r){return {motif:r.motif,share:num(r.part_pct_passagers)};});
+    DATA.empHabPays=parseCSV(csv.empHabPays).map(function(r){return {name:r.pays,group:r.groupe,tot:num(r.conso_hab_tco2),nat:num(r.national_hab_tco2),imp:num(r.importe_hab_tco2),impPct:num(r.part_importee_pct)};});
+    DATA.empHabFr=parseCSV(csv.empHabFr).map(function(r){return {name:r.poste,tot:num(r.total_hab_tco2eq),nat:num(r.national_hab_tco2eq),imp:num(r.importe_hab_tco2eq),impPct:num(r.part_importee_pct)};});
     DATA.caveats=csv.caveats||[];
   }
 
@@ -717,10 +739,63 @@
       '<div style="font-size:12.5px;color:var(--muted);margin:20px 0 8px">Motifs des passagers — % (ENPA 2023)</div>'+motifs;
   }
 
+  /* ---------- EMPREINTE /HAB : national vs importé ---------- */
+  var habVis={national:true,imported:true};
+  function buildHabLegend(){
+    var leg=document.getElementById('legHab');
+    var items=[{k:'national',name:'Produit sur le territoire',color:'#34d399'},{k:'imported',name:'Importé',color:'#fb923c'}];
+    leg.innerHTML="";
+    items.forEach(function(it){
+      var chip=document.createElement('span');chip.className='chip'+(habVis[it.k]?'':' off');
+      chip.innerHTML='<span class="sw" style="background:'+it.color+'"></span>'+it.name;
+      chip.onclick=function(){habVis[it.k]=!habVis[it.k];chip.className='chip'+(habVis[it.k]?'':' off');buildHabPays();buildHabFr();};
+      leg.appendChild(chip);
+    });
+  }
+  function habRow(d,max,unit){
+    var natW=habVis.national?d.nat/max*100:0, impW=habVis.imported?d.imp/max*100:0;
+    var shown=(habVis.national?d.nat:0)+(habVis.imported?d.imp:0);
+    var dm=' data-n="'+d.name+'" data-nat="'+d.nat+'" data-imp="'+d.imp+'" data-tot="'+d.tot+'" data-pct="'+d.impPct+'" data-u="'+unit+'"';
+    var nat=habVis.national?'<div class="barseg"'+dm+' style="width:'+natW+'%;background:var(--cool)"></div>':'';
+    var imp=habVis.imported?'<div class="barseg"'+dm+' style="width:'+impW+'%;background:var(--orange)"></div>':'';
+    return '<div class="barrow"><div class="bname">'+d.name+'</div><div class="bartrack">'+nat+imp+'</div>'+
+      '<div class="barval">'+fmt(shown,1)+' '+unit+'<br><span style="color:var(--faint);font-size:11px">'+d.impPct+'% imp.</span></div></div>';
+  }
+  function buildHabPays(){
+    var d=DATA.empHabPays.slice().sort(function(a,b){return b.tot-a.tot;});
+    var max=Math.max.apply(null,d.map(function(x){return x.tot;}));
+    document.getElementById('habPaysChart').innerHTML=d.map(function(x){return habRow(x,max,'t');}).join('');
+  }
+  function buildHabFr(){
+    var d=DATA.empHabFr.slice().sort(function(a,b){return b.tot-a.tot;});
+    var max=Math.max.apply(null,d.map(function(x){return x.tot;}));
+    document.getElementById('habFrChart').innerHTML=d.map(function(x){return habRow(x,max,'t');}).join('');
+  }
+  function wireHabHover(){
+    var tt=document.getElementById('ttHab');
+    function attach(box){
+      box.addEventListener('mousemove',function(e){
+        var seg=e.target.closest('.barseg'),d=seg&&seg.dataset;
+        if(!d||!d.n){tt.style.opacity='0';return;}
+        tt.innerHTML='<div class="tt-year">'+d.n+'</div>'+
+          '<div class="tt-row"><span class="tt-sw" style="background:var(--cool)"></span>National<span class="tt-val">'+fmt(parseFloat(d.nat),2)+' '+d.u+'</span></div>'+
+          '<div class="tt-row"><span class="tt-sw" style="background:var(--orange)"></span>Importé<span class="tt-val">'+fmt(parseFloat(d.imp),2)+' '+d.u+'</span></div>'+
+          '<div class="tt-row" style="color:var(--faint)">Total · '+d.pct+'% imp.<span class="tt-val">'+fmt(parseFloat(d.tot),2)+' '+d.u+'</span></div>';
+        tt.style.opacity='1';
+        var x=e.clientX+14;if(x+200>window.innerWidth)x=e.clientX-200;
+        tt.style.left=x+'px';tt.style.top=(e.clientY+14)+'px';
+      });
+      box.addEventListener('mouseleave',function(){tt.style.opacity='0';});
+    }
+    attach(document.getElementById('habPaysChart'));
+    attach(document.getElementById('habFrChart'));
+  }
+
   function renderAll(){
     buildFrance();buildPays();buildCommerce();buildSecteurs();buildSectLegend();buildSources();
     buildSectPaysLegend();buildSectPays();buildElec();
     buildTrCards();buildTrModes();buildTrUsage();buildTrLD();buildAviation();
+    buildHabLegend();buildHabPays();buildHabFr();
   }
 
   /* ---------- export ---------- */
@@ -766,7 +841,7 @@
   /* ---------- boot ---------- */
   if(!window.CO2_CSV){document.getElementById('status').textContent='⚠ data.js introuvable';return;}
   ingest(window.CO2_CSV);
-  wireTabs();wirePays();wireCommerce();wireSectMode();wireSectHover();wireExport();
+  wireTabs();wirePays();wireCommerce();wireSectMode();wireSectHover();wireHabHover();wireExport();
   renderAll();
 })();
 </script>

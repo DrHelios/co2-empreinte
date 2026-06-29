@@ -166,6 +166,27 @@ const AVIATION_MOTIFS = [
   { motif:'Autres', share:5 },
 ];
 
+// Empreinte conso PAR HABITANT + part importée brute (CO2 fossile)
+// consHab = OWID/GCP 2023 (tCO2/hab) ; impPct = OCDE TECO2 2018 (part brute importée de l'empreinte)
+const EMPREINTE_HAB = [
+  { name:'France',      group:'UE',   consHab:6.1,  impPct:47 },
+  { name:'Allemagne',   group:'UE',   consHab:9.1,  impPct:41 },
+  { name:'Italie',      group:'UE',   consHab:7.2,  impPct:39 },
+  { name:'Espagne',     group:'UE',   consHab:5.5,  impPct:39 },
+  { name:'Pologne',     group:'UE',   consHab:7.1,  impPct:24 },
+  { name:'Pays-Bas',    group:'UE',   consHab:8.3,  impPct:46 },
+  { name:'Belgique',    group:'UE',   consHab:16.8, impPct:54 },
+  { name:'UE (27)',     group:'UE',   consHab:7.3,  impPct:28 },
+  { name:'Royaume-Uni', group:'INTL', consHab:7.1,  impPct:41 },
+  { name:'États-Unis',  group:'INTL', consHab:15.5, impPct:21 },
+  { name:'Japon',       group:'INTL', consHab:9.2,  impPct:27 },
+  { name:'Chine',       group:'INTL', consHab:7.6,  impPct:9 },
+  { name:'Inde',        group:'INTL', consHab:1.8,  impPct:14 },
+  { name:'Russie',      group:'INTL', consHab:9.7,  impPct:11 },
+  { name:'Brésil',      group:'INTL', consHab:2.2,  impPct:26 },
+];
+const FR_POP = 68.2; // millions, pour passer l'empreinte France par poste en /hab
+
 /* ---------- CSV ---------- */
 const esc = (v) => {
   if (v === null || v === undefined) return '';
@@ -219,6 +240,17 @@ const csvTrUsage = toCSV(['usage', 'part_pct_transport', 'detail'], TR_USAGE.map
 const csvTrLD = toCSV(['indicateur', 'part_pct'], TR_LD.map(d => [d.ind, d.share]));
 // 11. Aviation — motifs
 const csvAviation = toCSV(['motif', 'part_pct_passagers'], AVIATION_MOTIFS.map(m => [m.motif, m.share]));
+// 12. Empreinte/hab par pays (national vs importé, CO2 fossile)
+const r2 = (x) => Math.round(x * 100) / 100;
+const csvEmpHabPays = toCSV(
+  ['pays', 'groupe', 'conso_hab_tco2', 'part_importee_pct', 'national_hab_tco2', 'importe_hab_tco2'],
+  EMPREINTE_HAB.map(c => [c.name, c.group, c.consHab, c.impPct, r2(c.consHab * (1 - c.impPct / 100)), r2(c.consHab * c.impPct / 100)])
+);
+// 13. Empreinte/hab France par poste (national vs importé, CO2eq)
+const csvEmpHabFr = toCSV(
+  ['poste', 'total_hab_tco2eq', 'national_hab_tco2eq', 'importe_hab_tco2eq', 'part_importee_pct'],
+  SECTEURS.map(s => { const t = r2(s.value / FR_POP), imp = r2(t * s.imported / 100); return [s.name, t, r2(t - imp), imp, s.imported]; })
+);
 
 fs.writeFileSync(path.join(DATA, 'co2_pays_series.csv'), csvPays);
 fs.writeFileSync(path.join(DATA, 'co2_france_overview.csv'), csvFrance);
@@ -231,6 +263,8 @@ fs.writeFileSync(path.join(DATA, 'co2_transport_modes.csv'), csvTrModes);
 fs.writeFileSync(path.join(DATA, 'co2_transport_usage.csv'), csvTrUsage);
 fs.writeFileSync(path.join(DATA, 'co2_transport_longue_distance.csv'), csvTrLD);
 fs.writeFileSync(path.join(DATA, 'co2_aviation_motifs.csv'), csvAviation);
+fs.writeFileSync(path.join(DATA, 'co2_empreinte_hab_pays.csv'), csvEmpHabPays);
+fs.writeFileSync(path.join(DATA, 'co2_empreinte_hab_france.csv'), csvEmpHabFr);
 
 // data.js — consommé par index.html (fonctionne en double-clic, sans serveur)
 const payload = {
@@ -245,6 +279,8 @@ const payload = {
   trUsage: csvTrUsage,
   trLD: csvTrLD,
   aviationMotifs: csvAviation,
+  empHabPays: csvEmpHabPays,
+  empHabFr: csvEmpHabFr,
   caveats: CAVEATS,
 };
 fs.writeFileSync(path.join(OUT, 'data.js'), 'window.CO2_CSV = ' + JSON.stringify(payload) + ';\n');
