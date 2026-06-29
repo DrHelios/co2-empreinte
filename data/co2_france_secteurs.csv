@@ -1,0 +1,6 @@
+secteur,valeur_mtco2eq,part_pct,part_importee_pct,detail
+Transport / Mobilité,155,24,50,"Déplacements des ménages, carburants, véhicules"
+Alimentation,148,23,30,"Agriculture, agroalimentaire, boissons"
+Logement / Habitat,135,21,25,"Chauffage, énergie domestique, construction"
+Biens d'équipement & divers,122,19,70,"Dont textile-habillement ~3%, numérique ~4,5%, biens de luxe/équipement, loisirs"
+Services,84,13,20,"Surtout publics : administration, santé, éducation"

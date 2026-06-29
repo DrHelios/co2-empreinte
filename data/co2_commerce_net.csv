@@ -1,0 +1,15 @@
+pays,groupe,production_mtco2,consommation_mtco2,conso_par_hab_tco2,imports_nets_pct
+France,UE,295.3,437.4,6.6,48.1
+Allemagne,UE,645.82,838.8,9.98,29.9
+Italie,UE,360.24,461.8,7.75,28.2
+Espagne,UE,291.34,319.49,5.88,9.7
+Pologne,UE,401.24,413.48,7.8,3.1
+Pays-Bas,UE,171.51,157.38,8.79,-8.2
+Belgique,UE,88.91,207.1,17.79,132.9
+Royaume-Uni,INTL,365,475.2,7.09,30.2
+Chine,INTL,11711.8,10427,7.63,-11
+États-Unis,INTL,5055.4,5541,16.3,9.6
+Inde,INTL,2831.1,2340,1.77,-17.3
+Japon,INTL,1029.6,1201.5,9.18,16.7
+Russie,INTL,1675.5,1299.2,9.67,-22.5
+Brésil,INTL,480.1,465.2,2.23,-3.1

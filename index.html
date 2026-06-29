@@ -1,0 +1,726 @@
+<title>Empreinte carbone CO2 — France & comparaison internationale</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root{
+    --bg:#0d1117; --panel:#161b22; --panel2:#1c2330; --line:#283041;
+    --txt:#e6edf3; --muted:#9aa7b5; --faint:#6b7686;
+    --accent:#2dd4bf; --warm:#fb7185; --cool:#34d399;
+    --blue:#60a5fa; --orange:#fb923c; --purple:#a78bfa;
+    --radius:14px; --mono:ui-monospace,SFMono-Regular,Menlo,monospace;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--txt);font-family:var(--sans);line-height:1.5;
+    -webkit-font-smoothing:antialiased;font-size:15px}
+  .wrap{max-width:1080px;margin:0 auto;padding:28px 20px 80px}
+  header.top{margin-bottom:8px}
+  .kicker{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);font-weight:600}
+  h1{font-size:clamp(22px,3.4vw,32px);margin:6px 0 6px;letter-spacing:-.02em;font-weight:680}
+  .sub{color:var(--muted);max-width:70ch;font-size:14.5px}
+  .loader{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:18px 0 4px;
+    padding:10px 12px;background:var(--panel);border:1px solid var(--line);border-radius:10px}
+  .loader label{font-size:13px;color:var(--muted)}
+  .loader .file-btn{cursor:pointer;background:var(--panel2);border:1px solid var(--line);color:var(--txt);
+    padding:6px 12px;border-radius:8px;font-size:13px;font-weight:550}
+  .loader .file-btn:hover{border-color:var(--accent)}
+  .loader .status{font-size:12.5px;color:var(--faint);margin-left:auto}
+  input[type=file]{display:none}
+
+  nav.tabs{display:flex;gap:6px;flex-wrap:wrap;margin:22px 0 18px;border-bottom:1px solid var(--line)}
+  nav.tabs button{background:none;border:none;color:var(--muted);font-family:inherit;font-size:14px;
+    font-weight:560;padding:10px 14px;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px}
+  nav.tabs button:hover{color:var(--txt)}
+  nav.tabs button.active{color:var(--txt);border-bottom-color:var(--accent)}
+
+  section.tab{display:none;animation:fade .25s ease}
+  section.tab.active{display:block}
+  @keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:20px 20px 22px;margin-bottom:18px}
+  .panel h2{font-size:17px;margin:0 0 4px;font-weight:640;letter-spacing:-.01em}
+  .panel .note{font-size:12.5px;color:var(--faint);margin:0 0 14px}
+  .unit-pill{display:inline-block;font-size:11px;font-family:var(--mono);color:var(--accent);
+    background:rgba(45,212,191,.1);border:1px solid rgba(45,212,191,.25);padding:2px 8px;border-radius:20px;margin-left:6px;vertical-align:middle}
+
+  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:18px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+  .card .big{font-size:26px;font-weight:700;letter-spacing:-.02em;line-height:1.1}
+  .card .lbl{font-size:12.5px;color:var(--muted);margin-top:3px}
+  .card .ctx{font-size:11.5px;color:var(--faint);margin-top:6px}
+
+  .controls{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
+  .seg{display:inline-flex;background:var(--panel2);border:1px solid var(--line);border-radius:9px;overflow:hidden}
+  .seg button{background:none;border:none;color:var(--muted);font-family:inherit;font-size:12.5px;
+    padding:7px 12px;cursor:pointer;font-weight:550}
+  .seg button.active{background:var(--accent);color:#06231f;font-weight:650}
+  .mini-btn{background:var(--panel2);border:1px solid var(--line);color:var(--muted);font-family:inherit;
+    font-size:12px;padding:6px 11px;border-radius:8px;cursor:pointer}
+  .mini-btn:hover{color:var(--txt);border-color:var(--accent)}
+
+  .chart-box{position:relative;width:100%}
+  svg.chart{width:100%;height:auto;display:block;overflow:visible}
+  .grid-line{stroke:var(--line);stroke-width:1}
+  .axis-txt{fill:var(--faint);font-size:11px;font-family:var(--mono)}
+  .y-label{fill:var(--muted);font-size:11px}
+  .series-line{fill:none;stroke-width:2.2;stroke-linejoin:round;stroke-linecap:round}
+  .series-dot{stroke:var(--bg);stroke-width:1.5}
+  .guide{stroke:var(--faint);stroke-width:1;stroke-dasharray:3 3;opacity:0}
+  .tooltip{position:absolute;pointer-events:none;background:rgba(13,17,23,.96);border:1px solid var(--line);
+    border-radius:9px;padding:9px 11px;font-size:12px;min-width:150px;opacity:0;transition:opacity .1s;z-index:5;
+    box-shadow:0 8px 24px rgba(0,0,0,.4)}
+  .tooltip .tt-year{font-weight:650;margin-bottom:5px;font-family:var(--mono)}
+  .tooltip .tt-row{display:flex;align-items:center;gap:7px;margin:2px 0}
+  .tooltip .tt-sw{width:9px;height:9px;border-radius:2px;flex:0 0 auto}
+  .tooltip .tt-val{margin-left:auto;font-family:var(--mono);font-weight:600}
+
+  .legend{display:flex;flex-wrap:wrap;gap:7px;margin-top:16px}
+  .legend .chip{display:inline-flex;align-items:center;gap:7px;background:var(--panel2);
+    border:1px solid var(--line);border-radius:20px;padding:5px 11px 5px 9px;cursor:pointer;
+    font-size:12.5px;user-select:none;transition:opacity .15s,border-color .15s}
+  .legend .chip .sw{width:11px;height:11px;border-radius:50%;flex:0 0 auto}
+  .legend .chip.off{opacity:.38}
+  .legend .chip.off .sw{background:var(--faint)!important}
+  .legend .chip:hover{border-color:var(--faint)}
+
+  /* HTML bar charts */
+  .barrow{display:grid;grid-template-columns:130px 1fr auto;align-items:center;gap:12px;margin:9px 0;font-size:13px}
+  .barrow .bname{color:var(--txt);text-align:right;font-size:12.5px}
+  .barrow .bname small{color:var(--faint);display:block;font-size:10.5px;line-height:1.2}
+  .bartrack{background:var(--panel2);border-radius:6px;height:26px;position:relative;overflow:hidden;display:flex}
+  .barseg{height:100%;display:flex;align-items:center;transition:width .4s ease}
+  .barval{font-family:var(--mono);font-size:12.5px;font-weight:600;min-width:74px;text-align:right}
+  .seg-import{background-image:repeating-linear-gradient(45deg,rgba(230,237,243,.6) 0 5px,rgba(230,237,243,.13) 5px 10px);background-color:rgba(230,237,243,.06)}
+  .seg-pad{background:rgba(148,163,184,.10)}
+  .keyrow{display:flex;flex-wrap:wrap;gap:16px;margin-top:14px;font-size:12px;color:var(--muted)}
+  .keyrow span{display:inline-flex;align-items:center;gap:6px}
+  .keyrow i{width:16px;height:11px;border-radius:3px;display:inline-block}
+
+  /* diverging */
+  .divrow{display:grid;grid-template-columns:120px 1fr 90px;align-items:center;gap:10px;margin:7px 0;font-size:13px}
+  .divtrack{position:relative;height:24px}
+  .divtrack .zero{position:absolute;top:-3px;bottom:-3px;left:50%;width:1px;background:var(--line)}
+  .divbar{position:absolute;top:2px;height:20px;border-radius:4px;transition:all .4s ease}
+  .divval{font-family:var(--mono);font-size:12.5px;font-weight:600;text-align:right}
+
+  table.src{width:100%;border-collapse:collapse;font-size:13px}
+  table.src th{text-align:left;color:var(--muted);font-weight:600;font-size:11.5px;text-transform:uppercase;
+    letter-spacing:.05em;padding:8px 10px;border-bottom:1px solid var(--line)}
+  table.src td{padding:10px;border-bottom:1px solid var(--line);vertical-align:top}
+  table.src td a{color:var(--blue);text-decoration:none}
+  table.src td a:hover{text-decoration:underline}
+  table.src .org{color:var(--muted);font-size:12px}
+  .caveat{display:flex;gap:10px;margin:10px 0;font-size:13px;color:var(--muted)}
+  .caveat::before{content:"▸";color:var(--accent);flex:0 0 auto}
+  .warn{background:rgba(251,146,60,.08);border:1px solid rgba(251,146,60,.28);border-radius:10px;
+    padding:12px 14px;font-size:13px;color:#f9c79a;margin-bottom:16px}
+  footer{color:var(--faint);font-size:12px;margin-top:30px;border-top:1px solid var(--line);padding-top:16px}
+  a.inl{color:var(--blue);text-decoration:none}
+  @media(max-width:560px){
+    .barrow{grid-template-columns:96px 1fr;grid-template-areas:"n b" "v v"}
+    .barrow .barval{grid-area:v;text-align:left}
+    .divrow{grid-template-columns:84px 1fr 64px}
+  }
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div class="kicker">Empreinte carbone · CO2</div>
+    <h1>Consommation de CO2 : ce qu'on émet vs. ce qu'on importe</h1>
+    <p class="sub">Comparaison neutre entre <strong>émissions territoriales</strong> (produites sur le sol national)
+      et <strong>empreinte basée consommation</strong> (qui inclut le CO2 importé via les biens et services consommés).
+      France en détail, plus grands pays de l'UE et du monde. Données Global Carbon Project / Our World in Data et SDES/INSEE.</p>
+  </header>
+
+  <div class="loader">
+    <label>Données chargées depuis <code>data.js</code>.</label>
+    <span class="file-btn" id="pickBtn">Charger mes CSV…</span>
+    <input type="file" id="fileInput" accept=".csv" multiple>
+    <span class="status" id="status">prêt</span>
+  </div>
+
+  <nav class="tabs" id="tabs">
+    <button data-tab="france" class="active">France : empreinte vs territoriale</button>
+    <button data-tab="pays">Comparaison par pays</button>
+    <button data-tab="commerce">Imports nets de CO2 (2022)</button>
+    <button data-tab="secteurs">Détail sectoriel (France)</button>
+    <button data-tab="secteurspays">Par secteur & électricité</button>
+    <button data-tab="transport">Transport (France)</button>
+    <button data-tab="sources">Sources & méthode</button>
+  </nav>
+
+  <!-- ===== FRANCE ===== -->
+  <section class="tab active" id="france">
+    <div class="cards" id="franceCards"></div>
+    <div class="panel">
+      <h2>France — émissions territoriales vs empreinte de consommation <span class="unit-pill">MtCO2eq · tous gaz</span></h2>
+      <p class="note">Source SDES / INSEE. L'empreinte de consommation = émissions territoriales − exports + imports. L'écart entre les deux courbes = le CO2 net importé. Clique une entrée de légende pour afficher/masquer la courbe.</p>
+      <div class="chart-box">
+        <svg class="chart" id="svgFrance" viewBox="0 0 900 440" preserveAspectRatio="xMidYMid meet"></svg>
+        <div class="tooltip" id="ttFrance"></div>
+      </div>
+      <div class="legend" id="legFrance"></div>
+      <p class="note" style="margin-top:14px">⚠︎ Rupture méthodologique en 2024 (passage aux tables FIGARO d'Eurostat) : l'empreinte 2023 a été révisée de 644 à 583 Mt. Comparer les années récentes et anciennes avec prudence.</p>
+    </div>
+  </section>
+
+  <!-- ===== PAYS ===== -->
+  <section class="tab" id="pays">
+    <div class="panel">
+      <h2>Comparaison internationale <span class="unit-pill">MtCO2 · fossile (GCP/OWID)</span></h2>
+      <p class="note">CO2 fossile seul, pour la comparabilité entre pays. Choisis la métrique et filtre les groupes ; clique les pays dans la légende pour les afficher/masquer (l'échelle se recalcule automatiquement).</p>
+      <div class="controls">
+        <div class="seg" id="metricSeg">
+          <button data-m="cons" class="active">Empreinte consommation</button>
+          <button data-m="terr">Émissions territoriales</button>
+          <button data-m="net">CO2 net importé (conso − terr)</button>
+        </div>
+        <div class="seg" id="groupSeg">
+          <button data-g="all" class="active">Tous</button>
+          <button data-g="UE">UE</button>
+          <button data-g="INTL">International</button>
+        </div>
+        <button class="mini-btn" id="showAll">Tout afficher</button>
+        <button class="mini-btn" id="hideAll">Tout masquer</button>
+      </div>
+      <div class="chart-box">
+        <svg class="chart" id="svgPays" viewBox="0 0 900 460" preserveAspectRatio="xMidYMid meet"></svg>
+        <div class="tooltip" id="ttPays"></div>
+      </div>
+      <div class="legend" id="legPays"></div>
+    </div>
+  </section>
+
+  <!-- ===== COMMERCE ===== -->
+  <section class="tab" id="commerce">
+    <div class="panel">
+      <h2>Importateurs nets vs exportateurs nets de CO2 <span class="unit-pill">2022 · CO2 fossile</span></h2>
+      <p class="note">CO2 net importé en % de la production territoriale = (consommation − production) / production. <span style="color:var(--warm)">Positif = importateur net</span> (consomme plus de CO2 qu'il n'en produit). <span style="color:var(--cool)">Négatif = exportateur net</span>.</p>
+      <div class="controls">
+        <div class="seg" id="grpSeg2">
+          <button data-g="all" class="active">Tous</button>
+          <button data-g="UE">UE</button>
+          <button data-g="INTL">International</button>
+        </div>
+      </div>
+      <div id="divChart"></div>
+    </div>
+    <div class="panel">
+      <h2>Empreinte de consommation par habitant <span class="unit-pill">2022 · tCO2/hab</span></h2>
+      <p class="note">CO2 fossile par personne, basé consommation. Met en regard niveau de vie et empreinte importée.</p>
+      <div id="capChart"></div>
+    </div>
+  </section>
+
+  <!-- ===== SECTEURS ===== -->
+  <section class="tab" id="secteurs">
+    <div class="panel">
+      <h2>Empreinte carbone de la France par poste de consommation <span class="unit-pill">2023 · MtCO2eq</span></h2>
+      <p class="note">Source SDES (édition 1990-2023, total 644 MtCO2eq). Chaque barre montre la part produite <span style="color:var(--cool)">en France</span> et la part <span style="color:var(--orange)">importée</span>. Clique la légende pour isoler.</p>
+      <div class="legend" id="legSect" style="margin:0 0 16px"></div>
+      <div id="sectChart"></div>
+      <p class="note" style="margin-top:16px">Le textile-habillement (~3%) et le numérique (~4,5%) sont inclus dans « Biens d'équipement & divers », poste le plus importé (~70%). La rupture méthodologique 2024 révise le total à 563 Mt — la ventilation détaillée reste publiée sur la base 644 Mt.</p>
+    </div>
+  </section>
+
+  <!-- ===== SECTEURS PAR PAYS + ÉLECTRICITÉ ===== -->
+  <section class="tab" id="secteurspays">
+    <div class="panel">
+      <h2>Où chaque pays émet réellement <span class="unit-pill">2023 · tous GES</span></h2>
+      <p class="note">Part de chaque secteur, + le <strong>CO2 net importé</strong> (segment hachuré, au-delà du territorial). Bascule entre <strong>structure</strong> (chaque pays ramené à 100%) et <strong>volume absolu</strong> (à l'échelle des totaux : la Chine remplit l'axe, le reste est comblé en gris). Clique la légende pour isoler un secteur.</p>
+      <div class="controls">
+        <div class="seg" id="sectModeSeg">
+          <button data-m="struct" class="active">Structure (%)</button>
+          <button data-m="abs">Volume absolu (Mt)</button>
+          <button data-m="cap">Par habitant (t/hab)</button>
+        </div>
+      </div>
+      <div class="legend" id="legSectPays" style="margin:0 0 14px"></div>
+      <div id="sectPaysChart"></div>
+      <div class="keyrow">
+        <span><i class="seg-import" style="border:1px solid var(--line)"></i> CO2 net importé (au-delà du territorial)</span>
+        <span id="keyPad" style="display:none"><i class="seg-pad"></i> écart au plus gros émetteur (Chine)</span>
+      </div>
+      <p class="note" style="margin-top:16px"><strong>Lecture.</strong> La <strong>France est atypique</strong> : l'électricité ne pèse que ~11% (nucléaire + hydraulique), le <span style="color:var(--warm)">transport est le 1er poste (~31%)</span>, suivi de l'agriculture (~17%). À l'inverse, <strong>Chine</strong> (~49%) et <strong>Inde</strong> (~38%) sont dominées par l'électricité au charbon + l'industrie ; les <strong>États-Unis</strong> sont à l'équilibre électricité/transport (~30% chacun). Le CO2 importé ajoute ~48% à la France, ~30% à l'Allemagne/UE/UK ; Chine et Inde sont au contraire <em>exportatrices</em> nettes (−11% et −17%).</p>
+      <p class="note" style="margin-top:8px"><strong>Par habitant</strong>, le classement s'inverse : États-Unis ~17,6 t/hab loin devant, Chine ~10, Allemagne ~8, France ~5,8 (basse grâce au nucléaire), Inde ~2,9. En absolu l'Inde et la Chine dominent ; rapporté à la population, ce sont les pays riches qui émettent le plus.</p>
+      <p class="note" style="margin-top:8px">⚠︎ Périmètres : les secteurs sont en CO2eq territorial (Climate Watch/OWID 2023) ; le CO2 importé est un <em>ordre de grandeur</em> appliqué d'après les échanges nets en CO2 fossile (OWID/GCP 2022) — à lire comme une indication, pas une addition stricte.</p>
+    </div>
+    <div class="panel">
+      <h2>Pourquoi l'électricité française pèse si peu : son intensité carbone <span class="unit-pill">2024 · gCO2/kWh</span></h2>
+      <p class="note">Grammes de CO2 par kWh produit (moyenne annuelle, OWID/Ember). C'est ici que le nucléaire change tout — mais rappel : l'électricité n'est qu'~1/4 du CO2 total, donc cet avantage ne « décarbone » qu'une partie de l'empreinte.</p>
+      <div id="elecChart"></div>
+      <p class="note" style="margin-top:14px">La France (~40 g) est ~8× plus propre que l'Allemagne (~336 g) et ~15× plus que l'Inde (~705 g) ou la Pologne (~608 g, charbon). Mais comme le transport et le chauffage tournent au pétrole/gaz dans tous ces pays, l'écart d'empreinte <em>totale</em> par habitant se réduit à ~1,5–2×.</p>
+    </div>
+  </section>
+
+  <!-- ===== TRANSPORT FRANCE ===== -->
+  <section class="tab" id="transport">
+    <div class="cards" id="trCards"></div>
+    <div class="panel">
+      <h2>Transport en France par mode <span class="unit-pill">2023 · MtCO2eq</span></h2>
+      <p class="note">Le transport est le <strong>1er secteur émetteur français (~34%)</strong> et ~94% est routier — donc presque tout au pétrole, peu sensible au mix électrique. C'est le vrai chantier. Source Citepa/SECTEN · SDES.</p>
+      <div id="trModesChart"></div>
+      <p class="note" style="margin-top:14px">⚠︎ Les deux dernières barres (<span style="color:var(--faint)">soutes internationales</span>) sont <strong>hors inventaire territorial</strong> : l'aviation internationale (~18,7 Mt) n'est pas comptée dans le total national, alors qu'elle dépasse tout le reste hors routier.</p>
+    </div>
+    <div class="panel">
+      <h2>Transport par usage : quotidien, voyages, fret <span class="unit-pill">ordre de grandeur</span></h2>
+      <p class="note">Découpage du transport par finalité (The Shift Project). Il n'existe pas de répartition officielle en tonnes par motif — l'inventaire ne compte que par type de véhicule.</p>
+      <div id="trUsageChart"></div>
+      <h2 style="margin-top:26px">Le paradoxe de la longue distance <span class="unit-pill">EMP 2019</span></h2>
+      <p class="note">Poids des trajets de plus de 100 km dans la mobilité des personnes. C'est la réponse à ta question « domicile vs voyage » : <strong>une poignée de longs trajets fait l'essentiel des émissions</strong>.</p>
+      <div id="trLDChart"></div>
+      <p class="note" style="margin-top:14px"><strong>Lecture.</strong> Les trajets &gt;100 km ne sont que <strong>1,5% des déplacements</strong> mais ~47% des distances et <strong>~45% des émissions</strong> de la mobilité. Les trajets &lt;10 km, eux, sont 71% des déplacements mais &lt;13% des distances. Côté motifs : les voyages longue distance sont à <strong>81% personnels</strong> (vacances, famille, loisirs) vs 19% professionnels ; le domicile-travail ne pèse que ~13% des émissions du transport.</p>
+    </div>
+    <div class="panel">
+      <h2>Focus aviation <span class="unit-pill">France</span></h2>
+      <p class="note">L'avion concentre le débat « voyage plaisance vs pro ». Comparaison du périmètre compté (domestique) vs non compté (international), puis motifs des passagers (ENPA 2023).</p>
+      <div id="avChart"></div>
+      <p class="note" style="margin-top:14px">L'aviation est à <strong>51% loisirs / 25% familial / 19% pro</strong> (en passagers ; la part pro a chuté de 25% en 2015 à 19%). L'avion = ~25% de l'empreinte carbone du tourisme des Français pour ~9% des dépenses ; un Paris–New York A/R ≈ 1,7 tCO2e, soit ~20% de l'empreinte annuelle moyenne d'un Français. Les 25% de ménages les plus aisés réalisent &gt;50% des distances en avion.</p>
+    </div>
+  </section>
+
+  <!-- ===== SOURCES ===== -->
+  <section class="tab" id="sources">
+    <div class="panel">
+      <div class="warn" id="unitWarn"></div>
+      <h2>Études & sources</h2>
+      <p class="note">Cross-comparaison neutre des principales références sur les émissions basées consommation et le carbone importé.</p>
+      <table class="src"><thead><tr><th>Étude</th><th>Principal résultat</th><th>Lien</th></tr></thead>
+        <tbody id="srcBody"></tbody></table>
+    </div>
+    <div class="panel">
+      <h2>Limites méthodologiques</h2>
+      <div id="caveatList"></div>
+    </div>
+  </section>
+
+  <footer>
+    Données : Global Carbon Project / Our World in Data (CO2 fossile, comparaison pays) · SDES / INSEE (CO2eq tous gaz, France) · OCDE TECO2 · Eurostat FIGARO.
+    CSV éditables dans <code>/data</code> — modifie-les puis « Charger mes CSV… », ou relance <code>node build.js</code>.
+    Construit pour comparaison neutre ; les empreintes consommation sont des estimations modélisées (MRIO).
+  </footer>
+</div>
+
+<script src="data.js"></script>
+<script>
+(function(){
+  "use strict";
+  var SVGNS="http://www.w3.org/2000/svg";
+  var PALETTE=['#60a5fa','#f87171','#fbbf24','#34d399','#a78bfa','#fb923c','#22d3ee','#f472b6','#a3e635','#818cf8','#fca5a5','#5eead4','#fdba74','#e879f9'];
+  var SECT_COLORS={'Électricité & chaleur':'#fbbf24','Transport':'#f87171','Industrie & construction':'#a78bfa','Bâtiments':'#60a5fa','Agriculture':'#34d399','Autres / fugitives':'#94a3b8'};
+
+  /* ---------- CSV parse ---------- */
+  function parseCSV(text){
+    var rows=[],row=[],f="",q=false,i=0,c;
+    text=text.replace(/\r\n/g,"\n").replace(/\r/g,"\n");
+    for(;i<text.length;i++){c=text[i];
+      if(q){ if(c==='"'){ if(text[i+1]==='"'){f+='"';i++;} else q=false; } else f+=c; }
+      else{ if(c==='"')q=true; else if(c===','){row.push(f);f="";}
+        else if(c==='\n'){row.push(f);rows.push(row);row=[];f="";} else f+=c; }
+    }
+    if(f.length||row.length){row.push(f);rows.push(row);}
+    var head=rows.shift().map(function(h){return h.trim();});
+    return rows.filter(function(r){return r.length>1||((r[0]||"").trim()!=="");})
+      .map(function(r){var o={};head.forEach(function(h,j){o[h]=(r[j]!==undefined?r[j]:"").trim();});return o;});
+  }
+  var num=function(v){return v===""||v==null?null:parseFloat(v);};
+  var fmt=function(n,d){return n==null?"—":Number(n).toLocaleString('fr-FR',{minimumFractionDigits:d||0,maximumFractionDigits:d||0});};
+
+  /* ---------- state ---------- */
+  var DATA={};
+  function ingest(csv){
+    var pays=parseCSV(csv.pays);
+    var byc={},order=[];
+    pays.forEach(function(r){
+      if(!byc[r.pays]){byc[r.pays]={name:r.pays,group:r.groupe,years:[],terr:[],cons:[]};order.push(r.pays);}
+      byc[r.pays].years.push(+r.annee);
+      byc[r.pays].terr.push(num(r.co2_territorial_mt));
+      byc[r.pays].cons.push(num(r.co2_consommation_mt));
+    });
+    var years=byc[order[0]].years.slice();
+    var countries=order.map(function(n,i){var c=byc[n];c.color=PALETTE[i%PALETTE.length];
+      c.net=c.cons.map(function(v,j){return (v!=null&&c.terr[j]!=null)?v-c.terr[j]:null;});return c;});
+
+    DATA.years=years;
+    DATA.countries=countries;
+    DATA.france=parseCSV(csv.france).map(function(r){return {year:+r.annee,terr:num(r.territorial_mtco2eq),cons:num(r.consommation_mtco2eq),net:num(r.imports_nets_mtco2eq)};});
+    DATA.secteurs=parseCSV(csv.secteurs).map(function(r){return {name:r.secteur,value:num(r.valeur_mtco2eq),share:num(r.part_pct),imported:num(r.part_importee_pct),detail:r.detail};});
+    DATA.commerce=parseCSV(csv.commerce).map(function(r){return {name:r.pays,group:r.groupe,prod:num(r.production_mtco2),cons:num(r.consommation_mtco2),perCap:num(r.conso_par_hab_tco2),netPct:num(r.imports_nets_pct)};});
+    DATA.sources=parseCSV(csv.sources).map(function(r){return {name:r.etude,org:r.organisme,year:r.annee,finding:r.resultat,url:r.url};});
+    DATA.elec=parseCSV(csv.elec).map(function(r){return {name:r.pays,val:num(r.gco2_kwh)};});
+    var sp=parseCSV(csv.sectPays),spMap={},spOrd=[],secOrd=[];
+    sp.forEach(function(r){
+      if(!spMap[r.pays]){spMap[r.pays]={name:r.pays,total:num(r.total_mtco2eq),imp:num(r.import_net_pct),pop:num(r.population_m),sectors:[]};spOrd.push(r.pays);}
+      spMap[r.pays].sectors.push({name:r.secteur,share:num(r.part_pct)});
+      if(secOrd.indexOf(r.secteur)<0)secOrd.push(r.secteur);
+    });
+    DATA.sectPays=spOrd.map(function(n){return spMap[n];});
+    DATA.secOrder=secOrd;
+    DATA.trModes=parseCSV(csv.trModes).map(function(r){return {mode:r.mode,mt:num(r.mtco2eq),share:num(r.part_pct),perim:r.perimetre};});
+    DATA.trUsage=parseCSV(csv.trUsage).map(function(r){return {usage:r.usage,share:num(r.part_pct_transport),note:r.detail};});
+    DATA.trLD=parseCSV(csv.trLD).map(function(r){return {ind:r.indicateur,share:num(r.part_pct)};});
+    DATA.aviation=parseCSV(csv.aviationMotifs).map(function(r){return {motif:r.motif,share:num(r.part_pct_passagers)};});
+    DATA.caveats=csv.caveats||[];
+  }
+
+  /* ---------- generic SVG line chart ---------- */
+  function el(tag,attrs){var e=document.createElementNS(SVGNS,tag);for(var k in attrs)e.setAttribute(k,attrs[k]);return e;}
+  function niceMax(v){if(v<=0)return 10;var p=Math.pow(10,Math.floor(Math.log10(v)));var n=v/p;
+    var s=n<=1?1:n<=2?2:n<=2.5?2.5:n<=5?5:10;return s*p;}
+
+  function LineChart(svg,tooltip,opts){
+    // opts: {series:[{name,color,values[],visible}], years[], unit, allowNeg}
+    var M={l:58,r:18,t:18,b:34},W=svg.viewBox.baseVal.width,H=svg.viewBox.baseVal.height;
+    var PW=W-M.l-M.r,PH=H-M.t-M.b;
+    var years=opts.years, x0=years[0],x1=years[years.length-1];
+    function mapX(y){return M.l+(x1===x0?0:(y-x0)/(x1-x0))*PW;}
+    function draw(){
+      while(svg.firstChild)svg.removeChild(svg.firstChild);
+      var vis=opts.series.filter(function(s){return s.visible;});
+      var allv=[];vis.forEach(function(s){s.values.forEach(function(v){if(v!=null)allv.push(v);});});
+      var dmax=allv.length?Math.max.apply(null,allv):10;
+      var dmin=opts.allowNeg?Math.min.apply(null,allv.concat([0])):0;
+      var ymax=niceMax(dmax), ymin=opts.allowNeg&&dmin<0?-niceMax(-dmin):0;
+      function mapY(v){return M.t+PH-((v-ymin)/(ymax-ymin))*PH;}
+      var ticks=5,i,gy;
+      for(i=0;i<=ticks;i++){
+        var tv=ymin+(ymax-ymin)*i/ticks; gy=mapY(tv);
+        svg.appendChild(el('line',{class:'grid-line',x1:M.l,y1:gy,x2:M.l+PW,y2:gy,opacity:tv===0?.6:.28}));
+        var t=el('text',{class:'axis-txt',x:M.l-8,y:gy+3.5,'text-anchor':'end'});t.textContent=fmt(tv);svg.appendChild(t);
+      }
+      years.forEach(function(y){
+        var gx=mapX(y);
+        var t=el('text',{class:'axis-txt',x:gx,y:M.t+PH+18,'text-anchor':'middle'});t.textContent=y;svg.appendChild(t);
+      });
+      var yl=el('text',{class:'y-label',x:-(M.t+PH/2),y:14,transform:'rotate(-90)','text-anchor':'middle'});
+      yl.textContent=opts.unit;svg.appendChild(yl);
+      // guide
+      var guide=el('line',{class:'guide',y1:M.t,y2:M.t+PH});svg.appendChild(guide);
+      // lines
+      vis.forEach(function(s){
+        var d="",started=false;
+        s.values.forEach(function(v,j){if(v==null)return;var px=mapX(years[j]),py=mapY(v);
+          d+=(started?"L":"M")+px.toFixed(1)+" "+py.toFixed(1)+" ";started=true;});
+        if(d)svg.appendChild(el('path',{class:'series-line',d:d,stroke:s.color}));
+        s.values.forEach(function(v,j){if(v==null)return;
+          svg.appendChild(el('circle',{class:'series-dot',cx:mapX(years[j]),cy:mapY(v),r:3,fill:s.color}));});
+      });
+      // hover
+      svg.onmousemove=function(e){
+        var r=svg.getBoundingClientRect(),sx=(e.clientX-r.left)*(W/r.width);
+        var best=years[0],bd=1e9;years.forEach(function(y){var d=Math.abs(mapX(y)-sx);if(d<bd){bd=d;best=y;}});
+        var gx=mapX(best),idx=years.indexOf(best);
+        guide.setAttribute('x1',gx);guide.setAttribute('x2',gx);guide.setAttribute('opacity','.8');
+        var rows='<div class="tt-year">'+best+'</div>';
+        vis.forEach(function(s){var v=s.values[idx];if(v==null)return;
+          rows+='<div class="tt-row"><span class="tt-sw" style="background:'+s.color+'"></span>'+s.name+'<span class="tt-val">'+fmt(v, opts.dec||0)+'</span></div>';});
+        tooltip.innerHTML=rows;tooltip.style.opacity='1';
+        var box=svg.parentNode.getBoundingClientRect();
+        var px=(gx/W)*box.width;
+        tooltip.style.left=Math.min(box.width-tooltip.offsetWidth-6,Math.max(6,px+12))+'px';
+        tooltip.style.top=(M.t/H*box.height+8)+'px';
+      };
+      svg.onmouseleave=function(){guide.setAttribute('opacity','0');tooltip.style.opacity='0';};
+    }
+    return {draw:draw,opts:opts};
+  }
+
+  function renderLegend(container,series,onToggle){
+    container.innerHTML="";
+    series.forEach(function(s){
+      var chip=document.createElement('span');
+      chip.className='chip'+(s.visible?'':' off');
+      chip.innerHTML='<span class="sw" style="background:'+s.color+'"></span>'+s.name;
+      chip.onclick=function(){s.visible=!s.visible;chip.className='chip'+(s.visible?'':' off');onToggle();};
+      container.appendChild(chip);
+    });
+  }
+
+  /* ---------- FRANCE tab ---------- */
+  var frChart;
+  function buildFrance(){
+    var f=DATA.france, years=f.map(function(d){return d.year;});
+    var series=[
+      {name:'Émissions territoriales',color:'#60a5fa',visible:true,values:f.map(function(d){return d.terr;})},
+      {name:'Empreinte de consommation',color:'#fb923c',visible:true,values:f.map(function(d){return d.cons;})},
+      {name:'CO2 net importé',color:'#a78bfa',visible:true,values:f.map(function(d){return d.net;})}
+    ];
+    frChart=LineChart(document.getElementById('svgFrance'),document.getElementById('ttFrance'),
+      {series:series,years:years,unit:'MtCO2eq'});
+    frChart.draw();
+    renderLegend(document.getElementById('legFrance'),series,function(){frChart.draw();});
+    // cards
+    var last=f[f.length-1];
+    var cards=[
+      {big:fmt(last.cons)+' Mt',lbl:'Empreinte de consommation ('+last.year+')',ctx:'CO2eq, imports inclus'},
+      {big:fmt(last.terr)+' Mt',lbl:'Émissions territoriales ('+last.year+')',ctx:'produites en France'},
+      {big:'+'+Math.round((last.cons/last.terr-1)*100)+'%',lbl:'Empreinte vs territorial',ctx:'ratio '+ (last.cons/last.terr).toFixed(2)},
+      {big:'~50%',lbl:"Part importée de l'empreinte",ctx:'UE (dont Allemagne) + Asie (dont Chine)'},
+      {big:'8,2 t',lbl:'Par habitant ('+last.year+')',ctx:'CO2eq/hab, base consommation'}
+    ];
+    document.getElementById('franceCards').innerHTML=cards.map(function(c){
+      return '<div class="card"><div class="big">'+c.big+'</div><div class="lbl">'+c.lbl+'</div><div class="ctx">'+c.ctx+'</div></div>';}).join('');
+  }
+
+  /* ---------- PAYS tab ---------- */
+  var paysChart,paysMetric='cons',paysGroup='all';
+  var DEFAULT_VIS={'France':1,'Allemagne':1,'Chine':1,'États-Unis':1,'Inde':1};
+  function paysSeries(){
+    return DATA.countries
+      .filter(function(c){return paysGroup==='all'||c.group===paysGroup;})
+      .map(function(c){
+        var vals=paysMetric==='cons'?c.cons:paysMetric==='terr'?c.terr:c.net;
+        return {name:c.name,color:c.color,_country:c,values:vals.slice(),
+          visible: c._vis!==undefined?c._vis:!!DEFAULT_VIS[c.name]};
+      });
+  }
+  function buildPays(){
+    var series=paysSeries();
+    var unit=paysMetric==='net'?'MtCO2 (net importé)':'MtCO2';
+    paysChart=LineChart(document.getElementById('svgPays'),document.getElementById('ttPays'),
+      {series:series,years:DATA.years,unit:unit,allowNeg:paysMetric==='net'});
+    paysChart.draw();
+    renderLegend(document.getElementById('legPays'),series,function(){
+      series.forEach(function(s){s._country._vis=s.visible;});paysChart.draw();});
+  }
+  function wirePays(){
+    document.getElementById('metricSeg').onclick=function(e){var b=e.target.closest('button');if(!b)return;
+      paysMetric=b.dataset.m;segActive(this,b);buildPays();};
+    document.getElementById('groupSeg').onclick=function(e){var b=e.target.closest('button');if(!b)return;
+      paysGroup=b.dataset.g;segActive(this,b);buildPays();};
+    document.getElementById('showAll').onclick=function(){DATA.countries.forEach(function(c){c._vis=true;});buildPays();};
+    document.getElementById('hideAll').onclick=function(){DATA.countries.forEach(function(c){c._vis=false;});buildPays();};
+  }
+  function segActive(seg,btn){seg.querySelectorAll('button').forEach(function(b){b.classList.remove('active');});btn.classList.add('active');}
+
+  /* ---------- COMMERCE tab ---------- */
+  var comGroup='all';
+  function buildCommerce(){
+    var d=DATA.commerce.filter(function(c){return comGroup==='all'||c.group===comGroup;});
+    // diverging by netPct
+    var div=d.slice().sort(function(a,b){return b.netPct-a.netPct;});
+    var maxAbs=Math.max.apply(null,div.map(function(c){return Math.abs(c.netPct);}));
+    document.getElementById('divChart').innerHTML=div.map(function(c){
+      var pos=c.netPct>=0,w=Math.abs(c.netPct)/maxAbs*50;
+      var bar='<div class="divbar" style="'+(pos?'left:50%;':'right:50%;')+'width:'+w+'%;background:'+(pos?'var(--warm)':'var(--cool)')+'"></div>';
+      return '<div class="divrow"><div class="bname" style="text-align:right">'+c.name+'</div>'+
+        '<div class="divtrack"><div class="zero"></div>'+bar+'</div>'+
+        '<div class="divval" style="color:'+(pos?'var(--warm)':'var(--cool)')+'">'+(pos?'+':'')+fmt(c.netPct,1)+'%</div></div>';
+    }).join('');
+    // per capita
+    var cap=d.slice().sort(function(a,b){return b.perCap-a.perCap;});
+    var maxCap=Math.max.apply(null,cap.map(function(c){return c.perCap;}));
+    document.getElementById('capChart').innerHTML=cap.map(function(c){
+      var w=c.perCap/maxCap*100;
+      return '<div class="barrow"><div class="bname">'+c.name+'</div>'+
+        '<div class="bartrack"><div class="barseg" style="width:'+w+'%;background:linear-gradient(90deg,#2dd4bf,#60a5fa)"></div></div>'+
+        '<div class="barval">'+fmt(c.perCap,1)+' t</div></div>';
+    }).join('');
+  }
+  function wireCommerce(){
+    document.getElementById('grpSeg2').onclick=function(e){var b=e.target.closest('button');if(!b)return;
+      comGroup=b.dataset.g;segActive(this,b);buildCommerce();};
+  }
+
+  /* ---------- SECTEURS tab ---------- */
+  var sectVis={domestic:true,imported:true};
+  function buildSecteurs(){
+    var s=DATA.secteurs, maxv=Math.max.apply(null,s.map(function(x){return x.value;}));
+    document.getElementById('sectChart').innerHTML=s.map(function(x){
+      var imp=x.value*x.imported/100, dom=x.value-imp;
+      var wTot=x.value/maxv*100;
+      var domSeg=sectVis.domestic?'<div class="barseg" style="width:'+(dom/x.value*100)+'%;background:var(--cool)"></div>':'';
+      var impSeg=sectVis.imported?'<div class="barseg" style="width:'+(imp/x.value*100)+'%;background:var(--orange)"></div>':'';
+      return '<div class="barrow"><div class="bname">'+x.name+'<small>'+x.detail+'</small></div>'+
+        '<div class="bartrack" style="width:'+wTot+'%">'+domSeg+impSeg+'</div>'+
+        '<div class="barval">'+fmt(x.value)+' Mt<br><span style="color:var(--faint);font-size:11px">'+x.share+'% · '+x.imported+'% imp.</span></div></div>';
+    }).join('');
+  }
+  function buildSectLegend(){
+    var leg=document.getElementById('legSect');
+    var items=[{k:'domestic',name:'Produit en France',color:'#34d399'},{k:'imported',name:'Importé',color:'#fb923c'}];
+    leg.innerHTML="";
+    items.forEach(function(it){
+      var chip=document.createElement('span');chip.className='chip'+(sectVis[it.k]?'':' off');
+      chip.innerHTML='<span class="sw" style="background:'+it.color+'"></span>'+it.name;
+      chip.onclick=function(){sectVis[it.k]=!sectVis[it.k];chip.className='chip'+(sectVis[it.k]?'':' off');buildSecteurs();};
+      leg.appendChild(chip);
+    });
+  }
+
+  /* ---------- SOURCES tab ---------- */
+  function buildSources(){
+    document.getElementById('srcBody').innerHTML=DATA.sources.map(function(s){
+      return '<tr><td><strong>'+s.name+'</strong><div class="org">'+s.org+(s.year?' · '+s.year:'')+'</div></td>'+
+        '<td>'+s.finding+'</td><td><a href="'+s.url+'" target="_blank" rel="noopener">ouvrir ↗</a></td></tr>';}).join('');
+    document.getElementById('caveatList').innerHTML=DATA.caveats.map(function(c){
+      return '<div class="caveat">'+c+'</div>';}).join('');
+    document.getElementById('unitWarn').innerHTML='<strong>⚠︎ Deux périmètres de gaz, à ne pas confondre.</strong> '+
+      'La vue <em>France</em> est en <strong>CO2eq tous gaz</strong> (SDES/INSEE) ; la <em>comparaison par pays</em> et les <em>imports nets</em> sont en <strong>CO2 fossile seul</strong> (Global Carbon Project). '+
+      'Les niveaux ne sont donc pas directement comparables d\'un onglet à l\'autre — seules les tendances et les ratios le sont.';
+  }
+
+  /* ---------- tabs ---------- */
+  function wireTabs(){
+    document.getElementById('tabs').onclick=function(e){var b=e.target.closest('button');if(!b)return;
+      var id=b.dataset.tab;
+      this.querySelectorAll('button').forEach(function(x){x.classList.toggle('active',x===b);});
+      document.querySelectorAll('section.tab').forEach(function(s){s.classList.toggle('active',s.id===id);});
+    };
+  }
+
+  /* ---------- SECTEURS PAR PAYS + ÉLECTRICITÉ ---------- */
+  var sectVisible={};
+  function buildSectPaysLegend(){
+    var leg=document.getElementById('legSectPays');leg.innerHTML="";
+    DATA.secOrder.forEach(function(s){
+      if(sectVisible[s]===undefined)sectVisible[s]=true;
+      var color=SECT_COLORS[s]||'#888';
+      var chip=document.createElement('span');chip.className='chip'+(sectVisible[s]?'':' off');
+      chip.innerHTML='<span class="sw" style="background:'+color+'"></span>'+s;
+      chip.onclick=function(){sectVisible[s]=!sectVisible[s];chip.className='chip'+(sectVisible[s]?'':' off');buildSectPays();};
+      leg.appendChild(chip);
+    });
+  }
+  var sectMode='struct';
+  function sectMag(c){return sectMode==='cap'?(c.total/c.pop):c.total;} // magnitude hors mode structure
+  function buildSectPays(){
+    var struct=sectMode==='struct';
+    var mags=DATA.sectPays.map(sectMag);
+    var maxMag=Math.max.apply(null,mags);
+    var maxImp=Math.max.apply(null,DATA.sectPays.map(function(c){return c.imp>0?c.imp:0;}));
+    var AXIS=struct?(100+Math.min(maxImp,60)+4):maxMag; // plafond struct : évite qu'un outlier (Belgique +133%) écrase les autres ; le surplus est tronqué (label conservé)
+    var keyPad=document.getElementById('keyPad');
+    if(struct){keyPad.style.display='none';}
+    else{var mc=DATA.sectPays[mags.indexOf(maxMag)].name;
+      keyPad.style.display='inline-flex';
+      keyPad.innerHTML='<i class="seg-pad"></i> écart au plus gros ('+mc+')';}
+    document.getElementById('sectPaysChart').innerHTML=DATA.sectPays.map(function(c){
+      var imp=c.imp||0, mag=struct?100:sectMag(c);
+      var segs=c.sectors.filter(function(s){return sectVisible[s.name];}).map(function(s){
+        var val=struct?s.share:mag*s.share/100;
+        return '<div class="barseg" title="'+s.name+' : '+s.share+'%" style="width:'+(val/AXIS*100)+'%;background:'+(SECT_COLORS[s.name]||'#888')+'"></div>';
+      }).join('');
+      var impVal=struct?imp:mag*imp/100;
+      var impSeg=imp>0?'<div class="barseg seg-import" title="CO2 net importé ≈ +'+imp+'%" style="width:'+(impVal/AXIS*100)+'%"></div>':'';
+      var filled=mag+(imp>0?impVal:0);
+      var padSeg=(!struct&&(AXIS-filled)>AXIS*0.002)?'<div class="barseg seg-pad" style="width:'+((AXIS-filled)/AXIS*100)+'%"></div>':'';
+      var totLabel=sectMode==='cap'?fmt(c.total/c.pop,1)+' t/hab':fmt(c.total)+' Mt';
+      var note=totLabel+' · '+(imp>0?'+'+imp+'% imp.':imp+'% (export.)');
+      return '<div class="barrow"><div class="bname">'+c.name+'<small>'+note+'</small></div>'+
+        '<div class="bartrack" style="width:100%">'+segs+impSeg+padSeg+'</div><div class="barval" style="min-width:0"></div></div>';
+    }).join('');
+  }
+  function wireSectMode(){
+    document.getElementById('sectModeSeg').onclick=function(e){var b=e.target.closest('button');if(!b)return;
+      sectMode=b.dataset.m;segActive(this,b);buildSectPays();};
+  }
+  function elecColor(v){return v<120?'#34d399':v<250?'#a3e635':v<400?'#fbbf24':v<550?'#fb923c':'#f87171';}
+  function buildElec(){
+    var d=DATA.elec.slice().sort(function(a,b){return a.val-b.val;});
+    var max=Math.max.apply(null,d.map(function(x){return x.val;}));
+    document.getElementById('elecChart').innerHTML=d.map(function(x){
+      var hl=x.name==='France';
+      return '<div class="barrow"><div class="bname"'+(hl?' style="color:var(--accent);font-weight:650"':'')+'>'+x.name+'</div>'+
+        '<div class="bartrack"><div class="barseg" style="width:'+(x.val/max*100)+'%;background:'+elecColor(x.val)+'"></div></div>'+
+        '<div class="barval">'+fmt(x.val)+' g</div></div>';
+    }).join('');
+  }
+
+  /* ---------- TRANSPORT FRANCE ---------- */
+  function buildTrCards(){
+    var cards=[
+      {big:'~34%',lbl:'Part du transport (FR)',ctx:'1er secteur, territorial 2023'},
+      {big:'94%',lbl:'Transport routier',ctx:'voitures, camions, utilitaires'},
+      {big:'53%',lbl:'Voitures particulières',ctx:'du transport · 67,4 Mt'},
+      {big:'~45%',lbl:'Émissions des trajets >100 km',ctx:'pour 1,5% des déplacements'}
+    ];
+    document.getElementById('trCards').innerHTML=cards.map(function(c){
+      return '<div class="card"><div class="big">'+c.big+'</div><div class="lbl">'+c.lbl+'</div><div class="ctx">'+c.ctx+'</div></div>';}).join('');
+  }
+  function buildTrModes(){
+    var d=DATA.trModes,max=Math.max.apply(null,d.map(function(m){return m.mt;}));
+    document.getElementById('trModesChart').innerHTML=d.map(function(m){
+      var hors=m.perim==='hors-inventaire',col=hors?'#64748b':'#f87171';
+      return '<div class="barrow"><div class="bname"'+(hors?' style="color:var(--faint)"':'')+'>'+m.mode+(hors?'<small>hors inventaire</small>':'')+'</div>'+
+        '<div class="bartrack"><div class="barseg" style="width:'+(m.mt/max*100)+'%;background:'+col+(hors?';opacity:.7':'')+'"></div></div>'+
+        '<div class="barval">'+fmt(m.mt,1)+' Mt'+(m.share!=null?'<br><span style="color:var(--faint);font-size:11px">'+m.share+'%</span>':'')+'</div></div>';
+    }).join('');
+  }
+  function buildTrUsage(){
+    var d=DATA.trUsage,max=Math.max.apply(null,d.map(function(u){return u.share;}));
+    var cols={'Mobilité du quotidien':'#60a5fa','Voyages longue distance':'#fb923c','Fret (marchandises)':'#a78bfa'};
+    document.getElementById('trUsageChart').innerHTML=d.map(function(u){
+      return '<div class="barrow"><div class="bname">'+u.usage+'<small>'+u.note+'</small></div>'+
+        '<div class="bartrack"><div class="barseg" style="width:'+(u.share/max*100)+'%;background:'+(cols[u.usage]||'#888')+'"></div></div>'+
+        '<div class="barval">'+u.share+'%</div></div>';
+    }).join('');
+  }
+  function buildTrLD(){
+    var cols=['#64748b','#fbbf24','#f87171'];
+    document.getElementById('trLDChart').innerHTML=DATA.trLD.map(function(x,i){
+      return '<div class="barrow"><div class="bname">'+x.ind+'</div>'+
+        '<div class="bartrack"><div class="barseg" style="width:'+x.share+'%;background:'+cols[i%3]+'"></div></div>'+
+        '<div class="barval">'+fmt(x.share,1)+'%</div></div>';
+    }).join('');
+  }
+  function buildAviation(){
+    var dom=0,intl=0;
+    DATA.trModes.forEach(function(m){if(m.mode.indexOf('Aviation domestique')>=0)dom=m.mt;if(m.mode.indexOf('Aviation internationale')>=0)intl=m.mt;});
+    var max=Math.max(dom,intl)||1;
+    var perim='<div class="barrow"><div class="bname">Aviation domestique<small>comptée (territorial)</small></div>'+
+      '<div class="bartrack"><div class="barseg" style="width:'+(dom/max*100)+'%;background:#34d399"></div></div><div class="barval">'+fmt(dom,1)+' Mt</div></div>'+
+      '<div class="barrow"><div class="bname" style="color:var(--faint)">Aviation internationale<small>hors inventaire</small></div>'+
+      '<div class="bartrack"><div class="barseg" style="width:'+(intl/max*100)+'%;background:#fb923c;opacity:.85"></div></div><div class="barval">'+fmt(intl,1)+' Mt</div></div>';
+    var maxM=Math.max.apply(null,DATA.aviation.map(function(m){return m.share;}));
+    var mcols={'Loisirs / tourisme':'#fb923c','Visites familiales (affinitaire)':'#fbbf24','Professionnel / affaires':'#60a5fa','Autres':'#64748b'};
+    var motifs=DATA.aviation.map(function(m){
+      return '<div class="barrow"><div class="bname">'+m.motif+'</div>'+
+        '<div class="bartrack"><div class="barseg" style="width:'+(m.share/maxM*100)+'%;background:'+(mcols[m.motif]||'#888')+'"></div></div>'+
+        '<div class="barval">'+m.share+'%</div></div>';
+    }).join('');
+    document.getElementById('avChart').innerHTML='<div style="font-size:12.5px;color:var(--muted);margin:0 0 8px">Émissions (MtCO2)</div>'+perim+
+      '<div style="font-size:12.5px;color:var(--muted);margin:20px 0 8px">Motifs des passagers — % (ENPA 2023)</div>'+motifs;
+  }
+
+  function renderAll(){
+    buildFrance();buildPays();buildCommerce();buildSecteurs();buildSectLegend();buildSources();
+    buildSectPaysLegend();buildSectPays();buildElec();
+    buildTrCards();buildTrModes();buildTrUsage();buildTrLD();buildAviation();
+  }
+
+  /* ---------- file loader ---------- */
+  function wireLoader(){
+    var input=document.getElementById('fileInput');
+    document.getElementById('pickBtn').onclick=function(){input.click();};
+    input.onchange=function(){
+      var files=Array.prototype.slice.call(input.files),pending=files.length,patch={};
+      if(!pending)return;
+      var base={};for(var bk in window.CO2_CSV)base[bk]=window.CO2_CSV[bk];
+      files.forEach(function(file){
+        var rd=new FileReader();
+        rd.onload=function(){
+          var n=file.name.toLowerCase();
+          if(n.indexOf('pays')>=0)patch.pays=rd.result;
+          else if(n.indexOf('overview')>=0||(n.indexOf('france')>=0&&n.indexOf('secteur')<0))patch.france=rd.result;
+          else if(n.indexOf('secteur')>=0)patch.secteurs=rd.result;
+          else if(n.indexOf('commerce')>=0)patch.commerce=rd.result;
+          else if(n.indexOf('source')>=0)patch.sources=rd.result;
+          if(--pending===0){
+            DATA.countries&&DATA.countries.forEach(function(c){delete c._vis;});
+            ingest(Object.assign(base,patch));renderAll();
+            document.getElementById('status').textContent=files.length+' fichier(s) chargé(s) ✓';
+          }
+        };
+        rd.readAsText(file);
+      });
+    };
+  }
+
+  /* ---------- boot ---------- */
+  if(!window.CO2_CSV){document.getElementById('status').textContent='⚠ data.js introuvable';return;}
+  ingest(window.CO2_CSV);
+  wireTabs();wirePays();wireCommerce();wireSectMode();wireLoader();
+  renderAll();
+})();
+</script>

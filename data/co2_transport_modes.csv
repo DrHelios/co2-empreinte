@@ -1,0 +1,11 @@
+mode,mtco2eq,part_pct,perimetre
+Voitures particulières,67.4,53,territorial
+Poids lourds (fret routier),27.9,22,territorial
+Véhicules utilitaires légers,19.5,15.4,territorial
+Aviation domestique,4.5,3.5,territorial
+Autobus & autocars,2.8,2.3,territorial
+Maritime & fluvial national,2.8,2.2,territorial
+Deux-roues,1.3,1,territorial
+Ferroviaire,0.5,0.5,territorial
+Aviation internationale (soutes),18.7,,hors-inventaire
+Maritime international (soutes),5.5,,hors-inventaire
