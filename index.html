@@ -138,6 +138,7 @@
     <label>Exporter les données (format éditable, sert aussi de modèle) :</label>
     <span class="file-btn" id="expData">⬇ data.js</span>
     <select id="expCsv" class="exp-select" aria-label="Télécharger un CSV"></select>
+    <span class="file-btn" id="copyLink">🔗 Lien de l'onglet</span>
     <span class="status" id="status">prêt</span>
   </div>
 
@@ -242,6 +243,7 @@
       </div>
       <div class="legend" id="legSectPays" style="margin:0 0 14px"></div>
       <div id="sectPaysChart"></div>
+      <div class="tooltip" id="ttSect" style="position:fixed"></div>
       <div class="keyrow">
         <span><i class="seg-import" style="border:1px solid var(--line)"></i> CO2 net importé (au-delà du territorial)</span>
         <span id="keyPad" style="display:none"><i class="seg-pad"></i> écart au plus gros émetteur (Chine)</span>
@@ -565,13 +567,21 @@
       'Les niveaux ne sont donc pas directement comparables d\'un onglet à l\'autre — seules les tendances et les ratios le sont.';
   }
 
-  /* ---------- tabs ---------- */
+  /* ---------- tabs (deep-link via #tab-<id>) ---------- */
+  function tabFromHash(){return location.hash.replace(/^#tab-/,'');}
+  function activateTab(id){
+    if(!id||!document.getElementById(id))return false;
+    var ok=false;
+    document.querySelectorAll('#tabs button').forEach(function(b){var on=b.dataset.tab===id;b.classList.toggle('active',on);if(on)ok=true;});
+    if(!ok)return false;
+    document.querySelectorAll('section.tab').forEach(function(s){s.classList.toggle('active',s.id===id);});
+    return true;
+  }
   function wireTabs(){
     document.getElementById('tabs').onclick=function(e){var b=e.target.closest('button');if(!b)return;
-      var id=b.dataset.tab;
-      this.querySelectorAll('button').forEach(function(x){x.classList.toggle('active',x===b);});
-      document.querySelectorAll('section.tab').forEach(function(s){s.classList.toggle('active',s.id===id);});
-    };
+      location.hash='tab-'+b.dataset.tab;}; // déclenche hashchange -> activateTab
+    window.addEventListener('hashchange',function(){activateTab(tabFromHash());});
+    activateTab(tabFromHash()); // ouvre l'onglet du lien partagé (sinon France par défaut)
   }
 
   /* ---------- SECTEURS PAR PAYS + ÉLECTRICITÉ ---------- */
@@ -602,12 +612,13 @@
       keyPad.innerHTML='<i class="seg-pad"></i> écart au plus gros ('+mc+')';}
     document.getElementById('sectPaysChart').innerHTML=DATA.sectPays.map(function(c){
       var imp=c.imp||0, mag=struct?100:sectMag(c);
+      var dm=function(s,pct){return ' data-c="'+c.name+'" data-s="'+s+'" data-pct="'+pct+'" data-mt="'+(c.total*pct/100)+'" data-pc="'+(c.total/c.pop*pct/100)+'"';};
       var segs=c.sectors.filter(function(s){return sectVisible[s.name];}).map(function(s){
         var val=struct?s.share:mag*s.share/100;
-        return '<div class="barseg" title="'+s.name+' : '+s.share+'%" style="width:'+(val/AXIS*100)+'%;background:'+(SECT_COLORS[s.name]||'#888')+'"></div>';
+        return '<div class="barseg"'+dm(s.name,s.share)+' style="width:'+(val/AXIS*100)+'%;background:'+(SECT_COLORS[s.name]||'#888')+'"></div>';
       }).join('');
       var impVal=struct?imp:mag*imp/100;
-      var impSeg=imp>0?'<div class="barseg seg-import" title="CO2 net importé ≈ +'+imp+'%" style="width:'+(impVal/AXIS*100)+'%"></div>':'';
+      var impSeg=imp>0?'<div class="barseg seg-import"'+dm('__imp__',imp)+' style="width:'+(impVal/AXIS*100)+'%"></div>':'';
       var filled=mag+(imp>0?impVal:0);
       var padSeg=(!struct&&(AXIS-filled)>AXIS*0.002)?'<div class="barseg seg-pad" style="width:'+((AXIS-filled)/AXIS*100)+'%"></div>':'';
       var totLabel=sectMode==='cap'?fmt(c.total/c.pop,1)+' t/hab':fmt(c.total)+' Mt';
@@ -619,6 +630,24 @@
   function wireSectMode(){
     document.getElementById('sectModeSeg').onclick=function(e){var b=e.target.closest('button');if(!b)return;
       sectMode=b.dataset.m;segActive(this,b);buildSectPays();};
+  }
+  function wireSectHover(){
+    var tt=document.getElementById('ttSect'), box=document.getElementById('sectPaysChart');
+    box.addEventListener('mousemove',function(e){
+      var seg=e.target.closest('.barseg'), d=seg&&seg.dataset;
+      if(!d||!d.s||d.s==='__pad__'){tt.style.opacity='0';return;}
+      var cap=sectMode==='cap';
+      var val=cap?fmt(parseFloat(d.pc),1)+' t/hab':fmt(parseFloat(d.mt))+' Mt';
+      var label=d.s==='__imp__'?'CO2 net importé':d.s;
+      var pct=(d.s==='__imp__'?'+':'')+d.pct+'%';
+      tt.innerHTML='<div class="tt-year">'+d.c+'</div>'+
+        '<div class="tt-row">'+label+'<span class="tt-val">'+val+'</span></div>'+
+        '<div class="tt-row" style="color:var(--faint)">part<span class="tt-val">'+pct+'</span></div>';
+      tt.style.opacity='1';
+      var x=e.clientX+14;if(x+190>window.innerWidth)x=e.clientX-190;
+      tt.style.left=x+'px';tt.style.top=(e.clientY+14)+'px';
+    });
+    box.addEventListener('mouseleave',function(){tt.style.opacity='0';});
   }
   function elecColor(v){return v<120?'#34d399':v<250?'#a3e635':v<400?'#fbbf24':v<550?'#fb923c':'#f87171';}
   function buildElec(){
@@ -725,12 +754,19 @@
       document.getElementById('status').textContent=file+' exporté ✓';
       sel.value='';
     };
+    document.getElementById('copyLink').onclick=function(){
+      var url=location.href, st=document.getElementById('status');
+      var ok=function(){st.textContent='lien de l\'onglet copié ✓';};
+      var fb=function(){var t=document.createElement('textarea');t.value=url;t.style.position='fixed';t.style.opacity='0';
+        document.body.appendChild(t);t.select();try{document.execCommand('copy');ok();}catch(e){st.textContent=url;}document.body.removeChild(t);};
+      if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(url).then(ok,fb);else fb();
+    };
   }
 
   /* ---------- boot ---------- */
   if(!window.CO2_CSV){document.getElementById('status').textContent='⚠ data.js introuvable';return;}
   ingest(window.CO2_CSV);
-  wireTabs();wirePays();wireCommerce();wireSectMode();wireExport();
+  wireTabs();wirePays();wireCommerce();wireSectMode();wireSectHover();wireExport();
   renderAll();
 })();
 </script>
